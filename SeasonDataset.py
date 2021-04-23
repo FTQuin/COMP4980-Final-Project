@@ -33,7 +33,9 @@ class SeasonDataset(Dataset):
     def __getitem__(self, item):
         # get row
         raw_row = self.df_features.iloc[item]
+        return self.get_as_tensor(raw_row)
 
+    def get_as_tensor(self, raw_row):
         # convert to one hots
         oht_t1 = self.to_one_hot(raw_row['t1_team_id'], self.df_teams)
         oht_t2 = self.to_one_hot(raw_row['t2_team_id'], self.df_teams)
@@ -49,7 +51,6 @@ class SeasonDataset(Dataset):
 
         # combine them all
         X = torch.cat((X_one_hots, X_others))
-        # X = X_others
 
         # add label to the end
         y = torch.tensor(raw_row[self.label]).float()
@@ -62,3 +63,25 @@ class SeasonDataset(Dataset):
     def to_one_hot(value, series):
         v = torch.eye(len(series))[series[series == value].index[0]].view(-1)
         return v
+
+    def get_custom_game(self, team1ID, team2ID):
+        t1 = self.get_team_stat(team1ID, 1)
+        t2 = self.get_team_stat(team2ID, 2)
+
+        game = t1.append(t2)
+        return game
+
+    def get_team_stat(self, teamID, new_team_position):
+        t_1 = self.df_features.loc[self.df_features['t1_team_id'] == teamID]
+        t_2 = self.df_features.loc[self.df_features['t2_team_id'] == teamID]
+
+        if t_1.index.max() > t_2.index.max():
+            cols = [c for c in self.df_features.columns if c[:2] == 't1']
+            t = self.df_features.iloc[t_1.index.max()][cols]
+        else:
+            cols = [c for c in self.df_features.columns if c[:2] == 't2']
+            t = self.df_features.iloc[t_2.index.max()][cols]
+
+        t = t.rename(lambda s: 't'+str(new_team_position)+s[2:], axis='columns')
+
+        return t

@@ -3,21 +3,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader
+from sklearn.model_selection import train_test_split
 from SeasonDataset import SeasonDataset
 
 
 # CONSTANTS
 DATA_FILE = './data/f_and_a_no0GP_-1.csv'
-SAVE_NET_FILE = './networks/test_1.pt'
+SAVE_NET_FILE = 'models/test_4.pt'
 
 BATCH_SIZE = 500
-EPOCHS = 1
-LEARNING_RATE = 0.001
+EPOCHS = 2
+LEARNING_RATE = 0.01
 TEST_PERCENT = 0.1
 TEST = True
 
-OPTIMIZER = torch.optim.SGD
+OPTIMIZER = torch.optim.Adam
 CRITERION = nn.MSELoss()
 
 
@@ -27,20 +28,16 @@ class MLPModel(nn.Module):
     def __init__(self, num_features):
         super(MLPModel, self).__init__()
 
-        self.dense1 = nn.Linear(num_features, 1500)
-        self.dense2 = nn.Linear(1500, 700)
-        self.dense3 = nn.Linear(700, 500)
-        self.dense4 = nn.Linear(500, 300)
-        self.dense5 = nn.Linear(300, 100)
-        self.dense6 = nn.Linear(100, 1)
+        self.dense1 = nn.Linear(num_features, 50)
+        self.dense2 = nn.Linear(50, 25)
+        self.dense3 = nn.Linear(25, 10)
+        self.dense4 = nn.Linear(10, 1)
 
     def forward(self, x):
-        x = torch.tanh(self.dense1(x))
-        x = torch.tanh(self.dense2(x))
-        x = torch.tanh(self.dense3(x))
-        x = torch.tanh(self.dense4(x))
-        x = torch.tanh(self.dense5(x))
-        x = torch.sigmoid(self.dense6(x))
+        x = torch.relu(self.dense1(x))
+        x = torch.relu(self.dense2(x))
+        x = torch.relu(self.dense3(x))
+        x = torch.sigmoid(self.dense4(x))
         return x
 
 
@@ -49,8 +46,13 @@ if __name__ == '__main__':
 
     # get dataset
     sd = SeasonDataset(DATA_FILE)
+    sd_train = SeasonDataset(DATA_FILE)
+    sd_test = SeasonDataset(DATA_FILE)
+    indicies = sd_train.df_features.index.values.tolist()
     # train test split
-    sd_train, sd_test = random_split(sd, [len(sd) - int(len(sd) * TEST_PERCENT), int(len(sd) * TEST_PERCENT)])
+    train_index, test_index = train_test_split(indicies, test_size=TEST_PERCENT)
+    sd_train.df_features = sd_train.df_features.iloc[train_index]
+    sd_test.df_features = sd_test.df_features.iloc[test_index]
     dl_train = DataLoader(sd_train, batch_size=BATCH_SIZE, shuffle=True)
 
     # init network, loss, and optimizer
@@ -82,6 +84,8 @@ if __name__ == '__main__':
             # show progress
             if total_batches * BATCH_SIZE % 1000 == 0:
                 print((total_batches * BATCH_SIZE) / (len(sd_train) * EPOCHS))
+                print(loss.item())
+                print()
 
         print('epoch {}\n loss {}\n'.format(epoch, loss.item(),))
 

@@ -3,8 +3,8 @@ from sklearn.preprocessing import StandardScaler
 
 
 # CONSTANTS
-RAW_DATA_FILE_NAME = 'ncaam-march-mania-2021\MDataFiles_Stage2/MRegularSeasonDetailedResults.csv'
-TEAM_DATA_FILE_NAME = 'ncaam-march-mania-2021\MDataFiles_Stage2/MTeams.csv'
+RAW_DATA_FILE_NAME = 'ncaam-march-mania-2021/MDataFiles_Stage2/MRegularSeasonDetailedResults.csv'
+TEAM_DATA_FILE_NAME = 'ncaam-march-mania-2021/MDataFiles_Stage2/MTeams.csv'
 DATA_START_POINT = 0
 NUM_OF_OUTPUTS = -1
 OUTPUT_FILE_NAME = './data/f_and_a_no0GP_' + str(NUM_OF_OUTPUTS) + '.csv'
@@ -172,13 +172,17 @@ def update_single_stat_df(row_, stat_df_, team_T, is_stats_for):
     # assist to turnover ratio
     stat_df_.loc[team_id, 'a_TO_ratio'] = stat_df_.loc[team_id, 'assists'] / stat_df_.loc[team_id, 'TOs']
     # block to foul ratio
-    stat_df_.loc[team_id, 'b_f_ratio'] = stat_df_.loc[team_id, 'blocks'] / stat_df_.loc[team_id, 'fouls']
+    if stat_df_.loc[team_id, 'fouls'] == 0:
+        stat_df_.loc[team_id, 'b_f_ratio'] = stat_df_.loc[team_id, 'blocks'] * 2
+    else:
+        stat_df_.loc[team_id, 'b_f_ratio'] = stat_df_.loc[team_id, 'blocks'] / stat_df_.loc[team_id, 'fouls']
 
 
 def update_average(games_played_, curr_avg, new_value):
     return (((games_played_ - 1) * curr_avg) + new_value) / games_played_
 
 
+# normalize features using sklearns standard scaler
 def normalize_features():
     # load data from file
     with open(OUTPUT_FILE_NAME, mode='r', newline='') as _out_file:
@@ -269,4 +273,4 @@ if __name__ == '__main__':
         df_file.to_csv(_out_file, header=True, index=False, mode='a')
 
     # normalize data that needs to be normalized
-    # normalize_features()
+    normalize_features()
